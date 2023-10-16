@@ -21,27 +21,33 @@
         </div>
 
         <div id="sfcnt">
-                <div class="msfi">
-                    <div class="sb_ifc" id="">
-                        <input
-                            type="text"
-                            class="lst lst-tbb"
-                            id="search-box"
-                            spellcheck="false"
-                            autocapitalize="off"
-                            autocomplete="off"
-                            autocorrect="off"
-                            placeholder="Digite o nome da música ou cantor"
-                            v-model="q"
-                        />
+            <h2>
+                Todas: 
+                <a href="javascript:void(0);" @click="showAllByArtist">Cantor</a> | 
+                <a href="javascript:void(0);" @click="showAllByTitle">Música</a>
+            </h2>
 
-                        <div class="gsst_b">
-                            <a @click="clear">
-                                <span class="sbcb_a limpar-pesquisa" aria-label="Limpar pesquisa">&times;</span>
-                            </a>
-                        </div>
+            <div class="msfi">
+                <div class="sb_ifc" id="">
+                    <input
+                        type="text"
+                        class="lst lst-tbb"
+                        id="search-box"
+                        spellcheck="false"
+                        autocapitalize="off"
+                        autocomplete="off"
+                        autocorrect="off"
+                        placeholder="Digite o nome da música ou cantor"
+                        v-model="q"
+                    />
+
+                    <div class="gsst_b">
+                        <a @click="clear">
+                            <span class="sbcb_a limpar-pesquisa" aria-label="Limpar pesquisa">&times;</span>
+                        </a>
                     </div>
                 </div>
+            </div>
         </div>
 
         <div class="center_col">
@@ -53,7 +59,12 @@
                                 <h3 class="r">
                                     <span class="_mB">{{ formatCode(result.doc.Codigo) }}</span>
                                     <a @click="show(result)">
-                                        {{ result.doc.Titulo }} - {{ result.doc.Cantor }}
+                                        <span v-if="showFormat == 'title-artist'">
+                                            {{ result.doc.Titulo }} - {{ result.doc.Cantor }}
+                                        </span>
+                                        <span v-else>
+                                            {{ result.doc.Cantor }} - {{ result.doc.Titulo }}
+                                        </span>
                                     </a>
                                 </h3>
                             </div>
@@ -97,6 +108,7 @@
             data: {
                 q: '',
                 results: [],
+                showFormat: 'title-artist',
             },
 
             mounted() {
@@ -133,10 +145,13 @@
                                     "c": /[ç]/g,
                                 }
                                 var artist_title = `${song.Cantor} ${song.Titulo}`.toLowerCase();
+                                var title_artist = `${song.Titulo} ${song.Cantor}`.toLowerCase();
                                 for (var key of Object.keys(regexp_replacements)) {
                                     artist_title = artist_title.replace(regexp_replacements[key], key);
+                                    title_artist = title_artist.replace(regexp_replacements[key], key);
                                 }
                                 song.artist_title = artist_title
+                                song.title_artist = title_artist
                                 db.add(i, song)
                             }
                         })
@@ -155,6 +170,8 @@
                 },
 
                 search(q) {
+                    this.showFormat = 'artist-title'
+
                     const results = db.search(q, { enrich: true })
                     results.forEach(result => {
                         //if (result.field == 'artist_title') {
@@ -182,6 +199,34 @@
                     } else {
                         return code
                     }
+                },
+
+                showAllByArtist() {
+                    const loadingComponent = this.$buefy.loading.open({
+                        container: null,
+                    })
+
+                    setTimeout(() => {
+                        this.clear()
+                        this.showFormat = 'artist-title'
+                        this.results = _.map(_.sortBy(db.store, ['artist_title']), (r) => { return { doc: r } })
+    
+                        loadingComponent.close()
+                    }, 100)
+                },
+
+                showAllByTitle() {
+                    const loadingComponent = this.$buefy.loading.open({
+                        container: null,
+                    })
+
+                    setTimeout(() => {
+                        this.clear()
+                        this.showFormat = 'title-artist'
+                        this.results = _.map(_.sortBy(db.store, ['title_artist']), (r) => { return { doc: r } })
+
+                        loadingComponent.close()
+                    }, 100)
                 }
             },
 
